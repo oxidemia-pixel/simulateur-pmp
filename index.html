@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMP Exam Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4f1eb;
+  --surface: #ffffff;
+  --surface2: #f9f7f3;
+  --border: #e2ddd4;
+  --ink: #1a1714;
+  --ink2: #4a4540;
+  --ink3: #8a8278;
+  --accent: #c0392b;
+  --accent2: #e74c3c;
+  --gold: #b8860b;
+  --gold2: #d4a017;
+  --success: #27ae60;
+  --danger: #c0392b;
+  --info: #2471a3;
+  --shadow: 0 4px 24px rgba(26,23,20,0.10);
+  --shadow-lg: 0 12px 48px rgba(26,23,20,0.15);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Instrument Sans', sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 0% 0%, rgba(192,57,43,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(184,134,11,0.07) 0%, transparent 50%);
+}
+
+/* NAV */
+nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 3rem;
+  background: var(--ink);
+  color: #fff;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  display: flex; align-items: center; gap: 0.7rem;
+}
+.logo-badge {
+  background: var(--accent); color: #fff;
+  font-size: 0.65rem; font-weight: 700;
+  padding: 0.2rem 0.55rem; border-radius: 4px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.nav-right { display: flex; align-items: center; gap: 1.5rem; }
+.domain-chip { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+.timer-nav { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; display: none; }
+.timer-nav.warning { color: #ff6b6b; animation: blink 1s infinite; }
+.nav-api-btn {
+  background: transparent; border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.7); padding: 0.35rem 0.9rem;
+  border-radius: 6px; font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.8rem; font-weight: 500; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem;
+}
+.nav-api-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
+.nav-api-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff6b6b; }
+.nav-api-dot.connected { background: #2ecc71; }
+@keyframes blink { 50% { opacity: 0.5; } }
+
+/* SCREENS */
+.screen { display: none; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== API KEY MODAL ===== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26,23,20,0.65);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.25s ease;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 2.5rem;
+  max-width: 480px; width: 100%;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 1.2rem; right: 1.2rem;
+  background: none; border: none;
+  color: var(--ink3); font-size: 1.2rem; cursor: pointer;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; transition: background 0.2s;
+}
+.modal-close:hover { background: var(--surface2); }
+.modal h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.2rem; font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.modal-sub { font-size: 0.88rem; color: var(--ink3); margin-bottom: 1.8rem; line-height: 1.6; }
+.modal-sub a { color: var(--info); text-decoration: none; }
+.modal-sub a:hover { text-decoration: underline; }
+
+.api-input-wrap { position: relative; margin-bottom: 1rem; }
+.api-input-wrap input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.9rem; padding: 0.85rem 3rem 0.85rem 1rem;
+  outline: none; transition: border-color 0.2s;
+  letter-spacing: 0.03em;
+}
+.api-input-wrap input:focus { border-color: var(--accent); }
+.api-input-wrap input.valid { border-color: var(--success); }
+.api-input-wrap input.invalid { border-color: var(--danger); }
+.toggle-visibility {
+  position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--ink3);
+  font-size: 1rem; transition: color 0.2s;
+}
+.toggle-visibility:hover { color: var(--ink); }
+
+.api-notice {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  background: rgba(36,113,163,0.07);
+  border: 1px solid rgba(36,113,163,0.2);
+  border-radius: 8px; padding: 0.9rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.82rem; color: var(--ink2); line-height: 1.55;
+}
+.api-notice-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.05rem; }
+
+.modal-error {
+  background: rgba(192,57,43,0.08);
+  border: 1px solid rgba(192,57,43,0.2);
+  border-radius: 8px; padding: 0.8rem 1rem;
+  color: var(--danger); font-size: 0.83rem;
+  margin-bottom: 1rem; display: none;
+}
+
+.btn-save-key {
+  width: 100%; padding: 0.9rem;
+  background: var(--ink); color: #fff; border: none;
+  border-radius: 10px; font-family: 'Syne', sans-serif;
+  font-size: 0.92rem; font-weight: 700; letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.22s;
+}
+.btn-save-key:hover { background: var(--accent); }
+.btn-save-key:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.remember-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  margin-bottom: 1.2rem; cursor: pointer;
+}
+.remember-row input[type=checkbox] { accent-color: var(--accent); cursor: pointer; width: 15px; height: 15px; }
+.remember-row label { font-size: 0.82rem; color: var(--ink2); cursor: pointer; }
+
+/* ===== API GATE (overlay on home when no key) ===== */
+.api-gate {
+  background: var(--surface);
+  border: 1.5px dashed var(--border);
+  border-radius: 14px;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.api-gate h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.api-gate p { font-size: 0.88rem; color: var(--ink3); margin-bottom: 1.2rem; line-height: 1.6; }
+.btn-enter-key {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem 1.8rem;
+  background: var(--ink); color: #fff; border: none;
+  border-radius: 8px; font-family: 'Syne', sans-serif;
+  font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.22s;
+}
+.btn-enter-key:hover { background: var(--accent); }
+
+/* HOME */
+#home { max-width: 1000px; margin: 0 auto; padding: 3.5rem 2rem 2rem; }
+.home-top {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 3rem; align-items: start; margin-bottom: 3rem;
+}
+@media (max-width: 700px) { .home-top { grid-template-columns: 1fr; } }
+.home-left h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 800;
+  line-height: 1.1; margin-bottom: 1rem; letter-spacing: -0.02em;
+}
+.home-left h1 span { color: var(--accent); }
+.home-left p { color: var(--ink2); font-size: 1rem; line-height: 1.7; margin-bottom: 1.8rem; }
+.pmp-facts { display: flex; flex-direction: column; gap: 0.7rem; }
+.fact { display: flex; align-items: center; gap: 0.8rem; font-size: 0.88rem; color: var(--ink2); }
+.fact-icon {
+  width: 28px; height: 28px; background: var(--ink); color: #fff;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; flex-shrink: 0;
+}
+.setup-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 2rem; box-shadow: var(--shadow);
+}
+.setup-card h2 {
+  font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700;
+  margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+.field { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 1.2rem; }
+.field label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink3); }
+.field select {
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--ink);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.92rem; padding: 0.7rem 1rem; outline: none;
+  transition: border-color 0.2s; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8278' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 1rem center;
+}
+.field select:focus { border-color: var(--accent); }
+.btn-start {
+  width: 100%; padding: 0.95rem;
+  background: var(--ink); color: #fff; border: none;
+  border-radius: 10px; font-family: 'Syne', sans-serif;
+  font-size: 0.95rem; font-weight: 700; letter-spacing: 0.05em;
+  cursor: pointer; transition: all 0.22s;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.btn-start:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(192,57,43,0.3); }
+.btn-start:disabled { opacity: 0.35; cursor: not-allowed; }
+.domains-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1rem; margin-bottom: 2.5rem;
+}
+@media (max-width: 600px) { .domains-row { grid-template-columns: 1fr 1fr; } }
+.domain-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.2rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.domain-pct { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+.domain-name { font-size: 0.82rem; font-weight: 600; color: var(--ink2); }
+.domain-desc { font-size: 0.75rem; color: var(--ink3); line-height: 1.4; }
+.error-box {
+  background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.25);
+  border-radius: 8px; padding: 1rem; margin-top: 1rem;
+  color: var(--danger); font-size: 0.88rem; display: none;
+}
+
+/* LOADING */
+#loading { display: none; text-align: center; padding: 6rem 2rem; }
+#loading.active { display: block; }
+.loader-ring {
+  width: 52px; height: 52px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.75s linear infinite; margin: 0 auto 2rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-title { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+.loader-sub { color: var(--ink3); font-size: 0.9rem; }
+
+/* EXAM */
+#exam { max-width: 800px; margin: 0 auto; padding: 2.5rem 2rem; }
+.exam-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.8rem; }
+.exam-meta { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.tag { font-size: 0.73rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.28rem 0.75rem; border-radius: 100px; border: 1.5px solid; }
+.tag-domain { border-color: var(--gold); color: var(--gold); background: rgba(184,134,11,0.07); }
+.tag-num { border-color: var(--border); color: var(--ink3); }
+.timer-pill {
+  font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+  color: var(--ink); background: var(--surface);
+  border: 1.5px solid var(--border); border-radius: 100px;
+  padding: 0.35rem 1rem; font-variant-numeric: tabular-nums;
+}
+.timer-pill.warning { border-color: var(--danger); color: var(--danger); animation: blink 1s infinite; }
+.progress-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 2rem; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold2)); border-radius: 2px; transition: width 0.4s ease; }
+.q-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 2.5rem; box-shadow: var(--shadow);
+  animation: qIn 0.3s ease;
+}
+@keyframes qIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+.q-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.q-number { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink3); }
+.difficulty { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 100px; }
+.diff-easy { background: rgba(39,174,96,0.12); color: var(--success); }
+.diff-medium { background: rgba(184,134,11,0.12); color: var(--gold); }
+.diff-hard { background: rgba(192,57,43,0.12); color: var(--danger); }
+.q-text { font-size: 1.08rem; line-height: 1.65; color: var(--ink); margin-bottom: 2rem; }
+.options { display: flex; flex-direction: column; gap: 0.75rem; }
+.option {
+  display: flex; align-items: flex-start; gap: 1rem;
+  padding: 1rem 1.2rem; background: var(--surface2);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  cursor: pointer; transition: all 0.18s;
+  font-size: 0.95rem; line-height: 1.5;
+}
+.option:hover:not(.answered) { border-color: var(--accent); background: rgba(192,57,43,0.04); }
+.option.selected { border-color: var(--info); background: rgba(36,113,163,0.07); }
+.option.correct { border-color: var(--success); background: rgba(39,174,96,0.08); }
+.option.incorrect { border-color: var(--danger); background: rgba(192,57,43,0.08); }
+.opt-letter {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+  font-family: 'Syne', sans-serif; transition: all 0.18s;
+}
+.option.selected .opt-letter { border-color: var(--info); color: var(--info); }
+.option.correct .opt-letter { border-color: var(--success); color: var(--success); background: rgba(39,174,96,0.15); }
+.option.incorrect .opt-letter { border-color: var(--danger); color: var(--danger); background: rgba(192,57,43,0.12); }
+.explanation { display: none; margin-top: 1.5rem; padding: 1.2rem 1.4rem; background: rgba(36,113,163,0.06); border-left: 3px solid var(--info); border-radius: 0 8px 8px 0; font-size: 0.9rem; line-height: 1.65; color: var(--ink2); }
+.explanation.show { display: block; animation: fadeIn 0.3s ease; }
+.explanation strong { color: var(--info); }
+.reference { display: none; margin-top: 0.75rem; font-size: 0.8rem; color: var(--ink3); font-style: italic; }
+.reference.show { display: block; }
+.nav-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; gap: 1rem; }
+.btn-ghost { padding: 0.7rem 1.4rem; background: transparent; color: var(--ink3); border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Instrument Sans', sans-serif; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all 0.18s; }
+.btn-ghost:hover { border-color: var(--ink3); color: var(--ink); }
+.btn-next { padding: 0.8rem 2rem; background: var(--ink); color: #fff; border: none; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; transition: all 0.22s; }
+.btn-next:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(192,57,43,0.28); }
+.btn-next:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* RESULTS */
+#results { max-width: 860px; margin: 0 auto; padding: 3rem 2rem; }
+.results-hero { background: var(--ink); color: #fff; border-radius: 18px; padding: 3rem; text-align: center; margin-bottom: 2rem; position: relative; overflow: hidden; }
+.results-hero::before { content: 'PMP'; position: absolute; font-family: 'Syne', sans-serif; font-size: 10rem; font-weight: 800; color: rgba(255,255,255,0.03); top: -1rem; right: -1rem; line-height: 1; pointer-events: none; }
+.score-big { font-family: 'Syne', sans-serif; font-size: 5rem; font-weight: 800; line-height: 1; margin-bottom: 0.3rem; }
+.score-big span { color: var(--gold2); }
+.result-verdict { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; margin: 0.8rem 0 0.4rem; }
+.result-msg { color: rgba(255,255,255,0.6); font-size: 0.95rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.3rem; text-align: center; }
+.stat-n { font-family: 'Syne', sans-serif; font-size: 1.9rem; font-weight: 800; margin-bottom: 0.3rem; }
+.stat:nth-child(1) .stat-n { color: var(--success); }
+.stat:nth-child(2) .stat-n { color: var(--danger); }
+.stat:nth-child(3) .stat-n { color: var(--info); }
+.stat:nth-child(4) .stat-n { color: var(--gold); }
+.stat-l { font-size: 0.75rem; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.domain-breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.8rem; margin-bottom: 2rem; }
+.domain-breakdown h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 1.3rem; letter-spacing: 0.03em; }
+.domain-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.domain-row-label { font-size: 0.82rem; font-weight: 600; width: 180px; flex-shrink: 0; color: var(--ink2); }
+.domain-bar-wrap { flex: 1; height: 8px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.domain-bar { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent), var(--gold2)); transition: width 0.8s ease; }
+.domain-row-pct { font-size: 0.82rem; font-weight: 700; width: 42px; text-align: right; color: var(--ink); }
+.review { margin-bottom: 2rem; }
+.review h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 0.03em; }
+.rev-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 0.7rem; display: flex; gap: 1rem; align-items: flex-start; }
+.rev-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.rev-q { font-size: 0.9rem; line-height: 1.5; color: var(--ink); margin-bottom: 0.35rem; }
+.rev-a { font-size: 0.82rem; }
+.rev-a.ok { color: var(--success); }
+.rev-a.fail { color: var(--danger); }
+.rev-correct { font-size: 0.82rem; color: var(--success); margin-top: 0.2rem; }
+.rev-expl { font-size: 0.8rem; color: var(--ink3); margin-top: 0.3rem; line-height: 1.5; font-style: italic; }
+.bottom-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.btn-restart { padding: 0.9rem 2.5rem; background: var(--ink); color: #fff; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; transition: all 0.22s; }
+.btn-restart:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(192,57,43,0.3); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">PMP Simulator <span class="logo-badge">PMI®</span></div>
+  <div class="nav-right">
+    <span class="domain-chip" id="nav-domain"></span>
+    <div class="timer-nav" id="timer-nav">⏱ <span id="timer-nav-val">00:00</span></div>
+    <button class="nav-api-btn" onclick="openModal()" id="nav-api-btn">
+      <span class="nav-api-dot" id="nav-api-dot"></span>
+      <span id="nav-api-label">Clé API</span>
+    </button>
+  </div>
+</nav>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>🔑 Clé API Anthropic</h2>
+    <p class="modal-sub">
+      Obtenez votre clé sur <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Elle commence par <code>sk-ant-</code>. Votre clé n'est jamais transmise à un tiers — elle est utilisée uniquement pour appeler l'API Anthropic directement depuis votre navigateur.
+    </p>
+    <div class="api-notice">
+      <span class="api-notice-icon">🔒</span>
+      <span>Votre clé reste dans votre navigateur. Aucun serveur intermédiaire ne la reçoit ou ne la stocke. Elle est envoyée directement à <strong>api.anthropic.com</strong>.</span>
+    </div>
+    <div class="api-input-wrap">
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-…" autocomplete="off" oninput="validateKeyInput()" />
+      <button class="toggle-visibility" onclick="toggleVisibility()" title="Afficher/masquer">👁</button>
+    </div>
+    <div class="modal-error" id="modal-error"></div>
+    <div class="remember-row">
+      <input type="checkbox" id="remember-key" checked />
+      <label for="remember-key">Mémoriser dans ce navigateur (localStorage)</label>
+    </div>
+    <button class="btn-save-key" id="btn-save-key" onclick="saveKey()" disabled>Enregistrer et continuer</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div style="max-width:1000px;margin:0 auto;padding:3.5rem 2rem 2rem;">
+
+    <!-- API GATE (shown when no key) -->
+    <div class="api-gate" id="api-gate">
+      <h3>🔑 Clé API requise pour démarrer</h3>
+      <p>Le simulateur génère des questions en temps réel via l'IA. Vous avez besoin d'une clé API Anthropic gratuite pour l'utiliser. Aucune clé n'est partagée avec d'autres utilisateurs.</p>
+      <button class="btn-enter-key" onclick="openModal()">Entrer ma clé API →</button>
+    </div>
+
+    <div class="home-top">
+      <div class="home-left">
+        <h1>Préparez la <span>certification PMP</span> avec l'IA</h1>
+        <p>Des questions générées selon les domaines officiels du PMI (PMBOK® 7e édition). Simulez les conditions réelles de l'examen et analysez vos lacunes par domaine.</p>
+        <div class="pmp-facts">
+          <div class="fact"><div class="fact-icon">📋</div>180 questions — 230 minutes dans l'examen réel</div>
+          <div class="fact"><div class="fact-icon">🎯</div>Seuil de réussite estimé à ~61 % (At / Above Target)</div>
+          <div class="fact"><div class="fact-icon">🔄</div>Questions prédictive, agile et hybride selon PMBOK® 7</div>
+          <div class="fact"><div class="fact-icon">✅</div>Explications détaillées après chaque réponse</div>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <h2>⚙ Configurer la session</h2>
+        <div class="field">
+          <label>Domaine de performance</label>
+          <select id="domain">
+            <option value="tous les domaines du PMP (prédictif, agile, hybride)">Tous les domaines (mixte)</option>
+            <option value="Stakeholders (parties prenantes)">Parties prenantes (Stakeholders)</option>
+            <option value="Team (équipe de projet)">Équipe de projet (Team)</option>
+            <option value="Development Approach & Life Cycle">Approche & Cycle de vie</option>
+            <option value="Planning (planification de projet)">Planification (Planning)</option>
+            <option value="Project Work (exécution du travail)">Travail de projet (Project Work)</option>
+            <option value="Delivery (livraison de valeur)">Livraison de valeur (Delivery)</option>
+            <option value="Measurement (mesure de la performance)">Mesure de performance (Measurement)</option>
+            <option value="Uncertainty (risques et incertitude)">Incertitude &amp; Risques</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nombre de questions</label>
+          <select id="num-q">
+            <option value="10">10 questions</option>
+            <option value="20" selected>20 questions</option>
+            <option value="30">30 questions</option>
+            <option value="50">50 questions</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Durée</label>
+          <select id="duration">
+            <option value="0">Sans limite</option>
+            <option value="15">15 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="60">1 heure</option>
+            <option value="115">1h55 (proportionnel)</option>
+            <option value="230">2h30 (examen complet)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Difficulté</label>
+          <select id="difficulty">
+            <option value="mixte (facile, moyen, difficile)">Mixte</option>
+            <option value="facile">Facile</option>
+            <option value="moyen">Moyen</option>
+            <option value="difficile">Difficile (niveau examen réel)</option>
+          </select>
+        </div>
+        <button class="btn-start" id="start-btn" onclick="startExam()">▶ Démarrer la simulation</button>
+        <div class="error-box" id="error-box"></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:1rem;">Domaines PMBOK® 7 — Répartition indicative</div>
+      <div class="domains-row">
+        <div class="domain-card"><div class="domain-pct">~16%</div><div class="domain-name">Parties prenantes</div><div class="domain-desc">Engagement et gestion des attentes</div></div>
+        <div class="domain-card"><div class="domain-pct">~16%</div><div class="domain-name">Équipe</div><div class="domain-desc">Leadership, collaboration, développement</div></div>
+        <div class="domain-card"><div class="domain-pct">~8%</div><div class="domain-name">Cycle de vie</div><div class="domain-desc">Approche prédictive, agile, hybride</div></div>
+        <div class="domain-card"><div class="domain-pct">~8%</div><div class="domain-name">Planification</div><div class="domain-desc">Portée, délais, coûts, ressources</div></div>
+        <div class="domain-card"><div class="domain-pct">~8%</div><div class="domain-name">Travail de projet</div><div class="domain-desc">Exécution, coordination, processus</div></div>
+        <div class="domain-card"><div class="domain-pct">~16%</div><div class="domain-name">Livraison</div><div class="domain-desc">Valeur, qualité, livrables</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="loader-ring"></div>
+  <div class="loader-title">Génération des questions PMP…</div>
+  <div class="loader-sub">L'IA prépare vos questions selon le PMBOK® 7e édition</div>
+</div>
+
+<!-- EXAM -->
+<div id="exam" class="screen">
+  <div class="exam-topbar">
+    <div class="exam-meta">
+      <span class="tag tag-domain" id="tag-domain">Domaine</span>
+      <span class="tag tag-num">Q <span id="q-cur">1</span> / <span id="q-tot">20</span></span>
+    </div>
+    <div class="timer-pill" id="timer-pill">⏱ <span id="timer-val">00:00</span></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+  </div>
+  <div class="q-card" id="q-card">
+    <div class="q-header">
+      <div class="q-number" id="q-num-label">Question 1</div>
+      <div class="difficulty" id="q-diff"></div>
+    </div>
+    <div class="q-text" id="q-text">Chargement…</div>
+    <div class="options" id="options"></div>
+    <div class="explanation" id="explanation"></div>
+    <div class="reference" id="reference"></div>
+  </div>
+  <div class="nav-btns">
+    <button class="btn-ghost" onclick="finishEarly()">Terminer</button>
+    <button class="btn-next" id="next-btn" onclick="nextQ()" disabled>Suivant →</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="screen">
+  <div class="results-hero">
+    <div class="score-big" id="score-big">—<span>%</span></div>
+    <div class="result-verdict" id="result-verdict">—</div>
+    <div class="result-msg" id="result-msg">—</div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-n" id="s-correct">—</div><div class="stat-l">Correctes</div></div>
+    <div class="stat"><div class="stat-n" id="s-wrong">—</div><div class="stat-l">Incorrectes</div></div>
+    <div class="stat"><div class="stat-n" id="s-skip">—</div><div class="stat-l">Omises</div></div>
+    <div class="stat"><div class="stat-n" id="s-time">—</div><div class="stat-l">Temps</div></div>
+  </div>
+  <div class="domain-breakdown">
+    <h3>📊 Performance par domaine</h3>
+    <div id="domain-bars"></div>
+  </div>
+  <div class="review">
+    <h3>📋 Révision détaillée</h3>
+    <div id="review-items"></div>
+  </div>
+  <div class="bottom-btns">
+    <button class="btn-restart" onclick="restart()">↩ Nouvelle session</button>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://api.anthropic.com/v1/messages";
+let questions = [], answers = [], current = 0;
+let timerInt = null, usedSec = 0, secLeft = 0;
+let apiKey = '';
+
+/* ─── API KEY MANAGEMENT ─── */
+function loadSavedKey() {
+  try {
+    const k = localStorage.getItem('pmp_api_key');
+    if (k && k.startsWith('sk-ant-')) {
+      apiKey = k;
+      updateKeyStatus(true);
+      document.getElementById('api-gate').style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function updateKeyStatus(connected) {
+  const dot = document.getElementById('nav-api-dot');
+  const label = document.getElementById('nav-api-label');
+  const startBtn = document.getElementById('start-btn');
+  dot.className = 'nav-api-dot' + (connected ? ' connected' : '');
+  label.textContent = connected ? 'Clé active' : 'Clé API';
+  startBtn.disabled = !connected;
+}
+
+function openModal() {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  const input = document.getElementById('api-key-input');
+  if (apiKey) { input.value = apiKey; input.classList.add('valid'); document.getElementById('btn-save-key').disabled = false; }
+  input.focus();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  document.getElementById('modal-error').style.display = 'none';
+}
+
+function toggleVisibility() {
+  const input = document.getElementById('api-key-input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function validateKeyInput() {
+  const val = document.getElementById('api-key-input').value.trim();
+  const input = document.getElementById('api-key-input');
+  const btn = document.getElementById('btn-save-key');
+  const valid = val.startsWith('sk-ant-') && val.length > 20;
+  input.className = val.length > 5 ? (valid ? 'valid' : 'invalid') : '';
+  btn.disabled = !valid;
+  document.getElementById('modal-error').style.display = 'none';
+}
+
+function saveKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    const err = document.getElementById('modal-error');
+    err.textContent = 'Clé invalide. Elle doit commencer par sk-ant-.';
+    err.style.display = 'block';
+    return;
+  }
+  apiKey = val;
+  try {
+    if (document.getElementById('remember-key').checked) localStorage.setItem('pmp_api_key', val);
+    else localStorage.removeItem('pmp_api_key');
+  } catch(e) {}
+  updateKeyStatus(true);
+  document.getElementById('api-gate').style.display = 'none';
+  closeModal();
+}
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+// Close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+// Enter key in input
+document.getElementById('api-key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('btn-save-key').disabled) saveKey();
+});
+
+/* ─── SCREEN MANAGEMENT ─── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('loading').style.display = 'none';
+  if (id === 'loading') { document.getElementById('loading').style.display = 'block'; return; }
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+/* ─── EXAM LOGIC ─── */
+async function startExam() {
+  if (!apiKey) { openModal(); return; }
+  const domain = document.getElementById('domain').value;
+  const num = parseInt(document.getElementById('num-q').value);
+  const dur = parseInt(document.getElementById('duration').value);
+  const diff = document.getElementById('difficulty').value;
+  const btn = document.getElementById('start-btn');
+  const errBox = document.getElementById('error-box');
+  btn.disabled = true; errBox.style.display = 'none';
+  showScreen('loading');
+
+  const prompt = `Tu es un expert certifié PMP et formateur PMI. Génère exactement ${num} questions QCM pour l'examen PMP basées sur le PMBOK® 7e édition.
+
+Domaine(s) : ${domain}
+Difficulté : ${diff}
+Format de l'examen réel PMP : questions situationnelles, basées sur des scénarios réels de gestion de projet.
+
+Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, sans balises markdown. Format strict :
+[
+  {
+    "question": "Scénario/question complète",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct": 0,
+    "explanation": "Explication détaillée selon PMBOK/PMI",
+    "domain": "Nom du domaine PMBOK 7",
+    "difficulty": "Facile|Moyen|Difficile",
+    "reference": "PMBOK® 7e éd. — Domaine : ..."
+  }
+]
+
+Important : correct est l'index 0-3. Questions de style PMI : situationnelles, avec options plausibles. Variez les domaines si "tous".`;
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 6000, messages: [{ role: 'user', content: prompt }] })
+    });
+
+    if (resp.status === 401) {
+      showScreen('home');
+      apiKey = ''; updateKeyStatus(false);
+      try { localStorage.removeItem('pmp_api_key'); } catch(e) {}
+      errBox.textContent = '⚠ Clé API invalide ou expirée. Veuillez saisir une clé valide.';
+      errBox.style.display = 'block';
+      btn.disabled = false;
+      setTimeout(openModal, 500);
+      return;
+    }
+    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || `Erreur ${resp.status}`); }
+
+    const data = await resp.json();
+    let raw = data.content?.find(b => b.type === 'text')?.text || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const m = raw.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error("Réponse invalide, veuillez réessayer.");
+    questions = JSON.parse(m[0]);
+    if (!questions.length) throw new Error("Aucune question reçue.");
+
+    answers = new Array(questions.length).fill(null);
+    current = 0; usedSec = 0;
+
+    if (dur > 0) { secLeft = dur * 60; startCountdown(); }
+    else { secLeft = 0; startCountup(); }
+
+    document.getElementById('q-tot').textContent = questions.length;
+    document.getElementById('tag-domain').textContent = domain.length > 30 ? 'Mixte' : domain;
+    document.getElementById('nav-domain').textContent = '';
+    showScreen('exam');
+    renderQ();
+  } catch(e) {
+    showScreen('home');
+    errBox.textContent = '⚠ ' + (e.message || 'Erreur réseau. Vérifiez votre connexion.');
+    errBox.style.display = 'block';
+    btn.disabled = !apiKey;
+  }
+}
+
+function startCountdown() {
+  clearInterval(timerInt);
+  document.getElementById('timer-nav').style.display = 'flex';
+  updateTimerDisplay();
+  timerInt = setInterval(() => {
+    usedSec++; secLeft--;
+    updateTimerDisplay();
+    if (secLeft <= 0) { clearInterval(timerInt); showResults(); }
+  }, 1000);
+}
+
+function startCountup() {
+  clearInterval(timerInt);
+  document.getElementById('timer-nav').style.display = 'flex';
+  timerInt = setInterval(() => {
+    usedSec++;
+    const str = fmt(usedSec);
+    document.getElementById('timer-val').textContent = str;
+    document.getElementById('timer-nav-val').textContent = str;
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const s = Math.max(0, secLeft);
+  const str = fmt(s);
+  document.getElementById('timer-val').textContent = str;
+  document.getElementById('timer-nav-val').textContent = str;
+  const warn = secLeft > 0 && secLeft <= 120;
+  document.getElementById('timer-pill').classList.toggle('warning', warn);
+  document.getElementById('timer-nav').classList.toggle('warning', warn);
+}
+
+function fmt(s) {
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+function renderQ() {
+  const q = questions[current];
+  const answered = answers[current] !== null;
+  const letters = ['A','B','C','D','E'];
+
+  document.getElementById('q-num-label').textContent = `Question ${current+1}`;
+  document.getElementById('q-cur').textContent = current+1;
+  document.getElementById('q-text').textContent = q.question;
+  document.getElementById('prog-fill').style.width = `${(current/questions.length)*100}%`;
+
+  const diffEl = document.getElementById('q-diff');
+  const dCls = {'Facile':'diff-easy','Moyen':'diff-medium','Difficile':'diff-hard'};
+  diffEl.textContent = q.difficulty || 'Moyen';
+  diffEl.className = 'difficulty ' + (dCls[q.difficulty] || 'diff-medium');
+  if (q.domain) { document.getElementById('nav-domain').textContent = q.domain; document.getElementById('tag-domain').textContent = q.domain; }
+
+  const optList = document.getElementById('options');
+  optList.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option' + (answered ? ' answered' : '');
+    if (answered) {
+      if (i === q.correct) div.classList.add('correct');
+      else if (i === answers[current]) div.classList.add('incorrect');
+    } else if (i === answers[current]) div.classList.add('selected');
+    div.innerHTML = `<div class="opt-letter">${letters[i]}</div><div>${opt}</div>`;
+    if (!answered) div.onclick = () => pick(i);
+    optList.appendChild(div);
+  });
+
+  const expl = document.getElementById('explanation');
+  const ref = document.getElementById('reference');
+  if (answered) {
+    expl.innerHTML = `<strong>💡 Explication PMI :</strong> ${q.explanation}`;
+    expl.classList.add('show');
+    if (q.reference) { ref.textContent = `📚 ${q.reference}`; ref.classList.add('show'); }
+  } else { expl.classList.remove('show'); ref.classList.remove('show'); }
+
+  const nb = document.getElementById('next-btn');
+  nb.disabled = !answered;
+  nb.textContent = current === questions.length-1 ? 'Voir les résultats ✓' : 'Suivant →';
+}
+
+function pick(i) {
+  if (answers[current] !== null) return;
+  answers[current] = i;
+  renderQ();
+}
+
+function nextQ() {
+  if (current < questions.length-1) { current++; renderQ(); }
+  else showResults();
+}
+
+function finishEarly() { showResults(); }
+
+function showResults() {
+  clearInterval(timerInt);
+  document.getElementById('timer-nav').style.display = 'none';
+
+  const correct = answers.filter((a,i) => a === questions[i]?.correct).length;
+  const skipped = answers.filter(a => a === null).length;
+  const wrong = questions.length - correct - skipped;
+  const pct = Math.round((correct / questions.length) * 100);
+
+  document.getElementById('score-big').innerHTML = `${pct}<span>%</span>`;
+  document.getElementById('s-correct').textContent = correct;
+  document.getElementById('s-wrong').textContent = wrong;
+  document.getElementById('s-skip').textContent = skipped;
+  document.getElementById('s-time').textContent = fmt(usedSec);
+
+  const levels = [
+    [80, '🏆 Above Target', 'Excellente maîtrise — vous êtes prêt(e) pour l\'examen réel.'],
+    [61, '✅ At Target', 'Score dans la zone de réussite — continuez à pratiquer.'],
+    [45, '⚠ Below Target', 'Des lacunes à combler — focus sur les domaines faibles.'],
+    [0,  '❌ Needs Improvement', 'Retravailler les fondamentaux PMBOK® et recommencer.']
+  ];
+  const [,verdict, msg] = levels.find(([t]) => pct >= t);
+  document.getElementById('result-verdict').textContent = verdict;
+  document.getElementById('result-msg').textContent = msg + ` (${correct}/${questions.length} correctes)`;
+
+  const domainMap = {};
+  questions.forEach((q, i) => {
+    const d = q.domain || 'Général';
+    if (!domainMap[d]) domainMap[d] = { total: 0, correct: 0 };
+    domainMap[d].total++;
+    if (answers[i] === q.correct) domainMap[d].correct++;
+  });
+  const barsEl = document.getElementById('domain-bars');
+  barsEl.innerHTML = '';
+  Object.entries(domainMap).forEach(([name, {total, correct}]) => {
+    const p = Math.round((correct/total)*100);
+    barsEl.innerHTML += `<div class="domain-row"><div class="domain-row-label">${name}</div><div class="domain-bar-wrap"><div class="domain-bar" style="width:${p}%"></div></div><div class="domain-row-pct">${p}%</div></div>`;
+  });
+
+  const revEl = document.getElementById('review-items');
+  revEl.innerHTML = '';
+  questions.forEach((q, i) => {
+    const ua = answers[i];
+    const ok = ua === q.correct;
+    const icon = ua === null ? '⬜' : (ok ? '✅' : '❌');
+    revEl.innerHTML += `<div class="rev-item"><div class="rev-icon">${icon}</div><div class="rev-body"><div class="rev-q">${q.question}</div>${ua !== null ? `<div class="rev-a ${ok?'ok':'fail'}">Votre réponse : ${q.options[ua]}</div>` : '<div class="rev-a fail">Sans réponse</div>'}${!ok && ua !== null ? `<div class="rev-correct">✔ Bonne réponse : ${q.options[q.correct]}</div>` : ''}${q.explanation ? `<div class="rev-expl">${q.explanation}</div>` : ''}</div></div>`;
+  });
+
+  document.getElementById('prog-fill').style.width = '100%';
+  showScreen('results');
+  setTimeout(() => { document.querySelectorAll('.domain-bar').forEach(b => { const w = b.style.width; b.style.width='0'; setTimeout(()=>b.style.width=w,50); }); }, 200);
+}
+
+function restart() {
+  clearInterval(timerInt);
+  questions=[]; answers=[]; current=0; usedSec=0;
+  document.getElementById('start-btn').disabled = !apiKey;
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('timer-nav').style.display = 'none';
+  showScreen('home');
+}
+
+// Init
+loadSavedKey();
+</script>
+</body>
+</html>
